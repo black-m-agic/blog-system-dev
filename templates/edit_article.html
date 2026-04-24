@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑文章 - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="form-container">
+        <h1>编辑文章</h1>
+        <form method="POST" action="{{ url_for('article.edit', id=article.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="title">标题</label>
+                <input type="text" id="title" name="title" value="{{ article.title }}" required>
+            </div>
+            <div class="form-group">
+                <label for="content">内容</label>
+                <textarea id="content" name="content" rows="10" required>{{ article.content }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="category">分类</label>
+                <select id="category" name="category" required>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if article.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tags">标签（逗号分隔）</label>
+                <input type="text" id="tags" name="tags" value="{{ tags_str }}">
+            </div>
+            <div class="form-group">
+                <label for="status">状态</label>
+                <select id="status" name="status">
+                    <option value="published" {% if article.status == 'published' %}selected{% endif %}>发布</option>
+                    <option value="draft" {% if article.status == 'draft' %}selected{% endif %}>保存为草稿</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">更新</button>
+        </form>
+    </div>
+{% endblock %}

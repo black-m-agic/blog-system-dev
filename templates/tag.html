@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}标签：{{ tag.name }} - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="content-wrapper">
+        <div class="main-content">
+            <h1>标签：{{ tag.name }}</h1>
+            {% if articles %}
+            <div class="article-list">
+                {% for article in articles %}
+                <div class="article-card">
+                    <h2><a href="{{ url_for('article.article_detail', id=article.id) }}">{{ article.title }}</a></h2>
+                    <p class="article-summary">{{ article.summary }}</p>
+                    <div class="article-meta">
+                        <span>作者：{{ article.author.username }}</span>
+                        <span>日期：{{ article.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span>阅读：{{ article.views }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-articles">
+                <p>该标签下暂无文章</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="sidebar">
+            <div class="widget">
+                <h3>热门标签</h3>
+                <div class="tag-cloud">
+                    {% for t in tags %}
+                    <a href="{{ url_for('article.tag', id=t.id) }}" class="tag">{{ t.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

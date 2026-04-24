@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=your-secret-key-here
+      - DATABASE_URL=sqlite:///instance/blog.db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+      - blog-data:/app/instance
+      - blog-logs:/app/logs
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: "redis:7-alpine"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  blog-data:
+  blog-logs:
+  redis-data:

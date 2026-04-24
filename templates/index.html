@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="content-wrapper">
+        <div class="main-content">
+            <h1>{% if search_query %}搜索: {{ search_query }}{% else %}首页{% endif %}</h1>
+            
+            {% if articles %}
+            <div class="article-list">
+                {% for article in articles %}
+                <div class="article-card" data-article-id="{{ article.id }}" data-article-title="{{ article.title }}" data-article-content="{{ article.content }}" data-article-summary="{{ article.summary }}" data-article-date="{{ article.created_at.strftime('%Y-%m-%d') if article.created_at else 'Unknown' }}" data-article-author="{{ article.author.username if article.author else 'Unknown' }}" data-article-category="{{ article.category.name if article.category else 'Unknown' }}">
+                    <h2><a href="{{ url_for('article.article_detail', id=article.id) }}">{{ article.title }}</a></h2>
+                    <p class="article-summary">{{ article.summary }}</p>
+                    <div class="article-meta">
+                        <span>作者: <a href="{{ url_for('article.user_profile', id=article.author.id) }}">{{ article.author.username }}</a></span>
+                        <span>日期: {{ article.created_at.strftime('%Y-%m-%d') if article.created_at else 'Unknown' }}</span>
+                        <span>分类: <a href="{{ url_for('article.category', id=article.category.id) }}">{{ article.category.name }}</a></span>
+                        <span>阅读: {{ article.views }}</span>
+                        <span>点赞: {{ article.likes|default(0) }}</span>
+                        <span>差评: {{ article.dislikes|default(0) }}</span>
+                        <span>文章编号: #{{ article.id }}</span>
+                        {% if article.tags %}
+                        <span>标签: 
+                            {% for tag in article.tags %}
+                            <a href="{{ url_for('article.tag', id=tag.id) }}">{{ tag.name }}</a>
+                            {% endfor %}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if pagination %}
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('main.index', page=pagination.prev_num) }}" class="page-btn">上一页</a>
+                {% endif %}
+                
+                <span class="page-info">第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
+                
+                {% if pagination.has_next %}
+                <a href="{{ url_for('main.index', page=pagination.next_num) }}" class="page-btn">下一页</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="no-articles">
+                <p>暂无文章，快来发布第一篇文章吧！</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="sidebar">
+            <!-- 分类导航 -->
+            <div class="widget">
+                <h3>分类导航</h3>
+                <ul class="category-list">
+                    {% for category in categories %}
+                    <li><a href="{{ url_for('article.category', id=category.id) }}">{{ category.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <!-- 热门标签 -->
+            <div class="widget">
+                <h3>热门标签</h3>
+                <div class="tag-cloud">
+                    {% for tag in tags %}
+                    <a href="{{ url_for('article.tag', id=tag.id) }}" class="tag">{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- AI助手聊天 -->
+            <div class="widget ai-chat-widget">
+                <div class="ai-chat-header">
+                    <h3>✨ AI智能助手</h3>
+                </div>
+                <div class="ai-chat-messages" id="ai-chat-messages">
+                    <!-- 初始为空，等待用户发送消息 -->
+                </div>
+                <div class="ai-chat-input">
+                    <input type="text" id="ai-chat-input" placeholder="问我任何问题...">
+                    <button id="ai-send-btn" class="ai-send-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Look 快速预览 -->
+    <div id="quick-look" class="quick-look">
+        <div class="quick-look-content">
+            <div class="quick-look-header">
+                <h3 id="ql-title"></h3>
+                <button id="ql-close" class="ql-close">×</button>
+            </div>
+            <div class="quick-look-body">
+                <p id="ql-summary"></p>
+                <div class="ql-meta">
+                    <span id="ql-author"></span>
+                    <span id="ql-date"></span>
+                    <span id="ql-category"></span>
+                </div>
+            </div>
+            <div class="quick-look-footer">
+                <a id="ql-link" href="" class="btn">查看全文</a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // 初始化 SocketIO
+        const socket = io();
+        
+        // 实时阅读统计
+        socket.on('reading_update', (data) => {
+            const articleId = data.article_id;
+            const count = data.count;
+            const readingCountElement = document.querySelector(`.reading-count[data-article-id="${articleId}"] .count`);
+            if (readingCountElement) {
+                readingCountElement.textContent = count;
+            }
+        });
+        
+        // AI聊天功能
+        const aiChatMessages = document.getElementById('ai-chat-messages');
+        const aiChatInput = document.getElementById('ai-chat-input');
+        const aiSendBtn = document.getElementById('ai-send-btn');
+        
+        const aiResponses = [
+            '你好！我是博客系统的智能助手，你可以叫我小AI。我随时为你提供帮助，无论是关于博客内容、技术问题还是其他话题，都可以问我哦！',
+            '你好！我是你专属的博客智能助手。你可以称呼我为AI助手，我会随时为你提供帮助和支持。',
+            '你好！很高兴见到你。我是博客系统的AI助手，有什么我可以帮助你的吗？无论是关于文章内容、技术问题还是其他方面，我都很乐意为你解答。',
+            '这是一个很好的问题！让我来详细为您分析一下。首先，我们需要从多个角度来看待这个问题，包括技术实现、用户体验以及实际应用场景。通过深入的分析，您会发现这个问题的解决方案其实非常有趣。希望我的回答对您有所帮助！如果还有其他问题，请随时问我。',
+            '根据我的了解，这个话题确实很有意思！让我从几个方面来为您详细解释。首先，我们要明白这个概念的基本原理，然后再探讨它在实际应用中的表现。通过这样的方式，您应该能够全面地理解这个问题了。如果还有什么不明白的地方，请随时告诉我！'
+        ];
+        
+        function addUserMessage(content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'user-ai-message';
+            messageDiv.innerHTML = `
+                <div class="user-ai-bubble">
+                    <p>${escapeHtml(content)}</p>
+                </div>
+                <div class="user-ai-avatar">👤</div>
+            `;
+            aiChatMessages.appendChild(messageDiv);
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        }
+        
+        function createAiMessageElement() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            messageDiv.innerHTML = `
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-bubble">
+                    <p class="ai-message-content"></p>
+                </div>
+            `;
+            aiChatMessages.appendChild(messageDiv);
+            return messageDiv;
+        }
+        
+        function updateAiMessageContent(messageDiv, content) {
+            const contentElement = messageDiv.querySelector('.ai-message-content');
+            if (contentElement) {
+                contentElement.textContent = content;
+            }
+            // 确保滚动到底部
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        }
+        
+        async function sendAiMessage() {
+            const content = aiChatInput.value.trim();
+            if (content) {
+                addUserMessage(content);
+                aiChatInput.value = '';
+                
+                // 创建空的AI消息元素
+                const aiMessageDiv = createAiMessageElement();
+                let accumulatedContent = '';
+                
+                // 调用AI流式接口
+                try {
+                    console.log('首页正在调用AI流式接口...');
+                    const response = await fetch('/api/chat/stream', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: content
+                        })
+                    });
+                    
+                    console.log('首页AI流式接口响应状态:', response.status);
+                    
+                    if (response.ok) {
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split('\n');
+                            
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const jsonStr = line.substring(6);
+                                        const data = JSON.parse(jsonStr);
+                                        
+                                        if (data.content) {
+                                            accumulatedContent += data.content;
+                                            updateAiMessageContent(aiMessageDiv, accumulatedContent);
+                                        }
+                                        
+                                        if (data.done) {
+                                            console.log('首页AI流式回复完成');
+                                        }
+                                    } catch (e) {
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // 如果流式接口失败，使用非流式接口
+                        console.log('首页AI流式接口失败，尝试非流式接口');
+                        const fallbackResponse = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                message: content
+                            })
+                        });
+                        
+                        const data = await fallbackResponse.json();
+                        if (data.success && data.reply) {
+                            updateAiMessageContent(aiMessageDiv, data.reply);
+                        } else {
+                            throw new Error('非流式接口也失败');
+                        }
+                    }
+                } catch (error) {
+                    console.error('首页AI接口调用失败:', error);
+                    // 如果AI接口失败，使用简单回复
+                    const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+                    updateAiMessageContent(aiMessageDiv, randomResponse);
+                }
+            }
+        }
+        
+        aiSendBtn.addEventListener('click', sendAiMessage);
+        
+        aiChatInput.addEventListener('keydown', function(e) {
+            // Ctrl + Enter 换行
+            if (e.key === 'Enter' && e.ctrlKey) {
+                return;
+            }
+            // Enter 发送
+            else if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendAiMessage();
+            }
+        });
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Quick Look 功能
+        const quickLook = document.getElementById('quick-look');
+        const qlTitle = document.getElementById('ql-title');
+        const qlSummary = document.getElementById('ql-summary');
+        const qlAuthor = document.getElementById('ql-author');
+        const qlDate = document.getElementById('ql-date');
+        const qlCategory = document.getElementById('ql-category');
+        const qlLink = document.getElementById('ql-link');
+        const qlClose = document.getElementById('ql-close');
+        
+        const articleCards = document.querySelectorAll('.article-card');
+        
+        articleCards.forEach(card => {
+            card.addEventListener('mouseenter', (e) => {
+                const articleId = card.dataset.articleId;
+                const title = card.dataset.articleTitle;
+                const summary = card.dataset.articleSummary;
+                const author = card.dataset.articleAuthor;
+                const date = card.dataset.articleDate;
+                const category = card.dataset.articleCategory;
+                
+                qlTitle.textContent = title;
+                qlSummary.textContent = summary;
+                qlAuthor.textContent = `作者: ${author}`;
+                qlDate.textContent = `日期: ${date}`;
+                qlCategory.textContent = `分类: ${category}`;
+                qlLink.href = `/article/${articleId}`;
+                
+                const rect = card.getBoundingClientRect();
+                const sidebarRect = document.querySelector('.sidebar').getBoundingClientRect();
+                
+                quickLook.style.top = `${rect.top}px`;
+                quickLook.style.left = `${sidebarRect.left - 300}px`;
+                
+                quickLook.classList.add('show');
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                quickLook.classList.remove('show');
+            });
+        });
+        
+        qlClose.addEventListener('click', () => {
+            quickLook.classList.remove('show');
+        });
+        
+        quickLook.addEventListener('click', (e) => {
+            if (e.target === quickLook) {
+                quickLook.classList.remove('show');
+            }
+        });
+    </script>
+{% endblock %}

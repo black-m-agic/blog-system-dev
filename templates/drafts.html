@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}我的草稿 - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="content-wrapper">
+        <div class="main-content">
+            <div class="drafts">
+                <h1>我的草稿</h1>
+                {% if articles %}
+                <div class="article-list">
+                    {% for article in articles %}
+                    <div class="article-card">
+                        <h2><a href="{{ url_for('article.article_detail', id=article.id) }}">{{ article.title }}</a></h2>
+                        <p class="article-summary">{{ article.summary }}</p>
+                        <div class="article-meta">
+                            <span>更新时间：{{ article.updated_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <span>
+                                <a href="{{ url_for('article.edit', id=article.id) }}" class="btn btn-sm">编辑</a>
+                                <a href="{{ url_for('article.delete', id=article.id) }}" class="btn btn-sm delete">删除</a>
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-articles">
+                    <p>暂无草稿</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="widget">
+                <h3>热门标签</h3>
+                <div class="tag-cloud">
+                    {% for tag in tags %}
+                    <a href="{{ url_for('article.tag', id=tag.id) }}" class="tag">{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

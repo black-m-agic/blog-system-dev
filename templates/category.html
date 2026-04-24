@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}分类：{{ category.name }} - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="content-wrapper">
+        <div class="main-content">
+            <h1>分类：{{ category.name }}</h1>
+            {% if articles %}
+            <div class="article-list">
+                {% for article in pagination.items %}
+                <div class="article-card">
+                    <h2><a href="{{ url_for('article.article_detail', id=article.id) }}">{{ article.title }}</a></h2>
+                    <p class="article-summary">{{ article.summary }}</p>
+                    <div class="article-meta">
+                        <span>作者：{{ article.author.username }}</span>
+                        <span>日期：{{ article.created_at.strftime('%Y-%m-%d') }}</span>
+                        <span>阅读：{{ article.views }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if pagination and pagination.pages > 1 %}
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('article.category', id=category.id, page=pagination.prev_num) }}" class="page-btn">上一页</a>
+                {% endif %}
+                <span class="page-info">第 {{ pagination.page }} 页 / 共 {{ pagination.pages }} 页</span>
+                {% if pagination.has_next %}
+                <a href="{{ url_for('article.category', id=category.id, page=pagination.next_num) }}" class="page-btn">下一页</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="no-articles">
+                <p>该分类下暂无文章</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="sidebar">
+            <div class="widget">
+                <h3>热门标签</h3>
+                <div class="tag-cloud">
+                    {% for tag in tags %}
+                    <a href="{{ url_for('article.tag', id=tag.id) }}" class="tag">{{ tag.name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

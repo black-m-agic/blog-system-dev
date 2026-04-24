@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}后台管理 - 个人博客系统{% endblock %}
+
+{% block content %}
+    <div class="admin-dashboard">
+        <h1>后台管理</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>文章总数</h3>
+                <p>{{ total_articles }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>用户总数</h3>
+                <p>{{ total_users }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>评论总数</h3>
+                <p>{{ total_comments }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>标签总数</h3>
+                <p>{{ total_tags }}</p>
+            </div>
+        </div>
+        
+        <div class="admin-section">
+            <h2>最近文章</h2>
+            {% if recent_articles %}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>作者</th>
+                        <th>日期</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in recent_articles %}
+                    <tr>
+                        <td><a href="{{ url_for('article.article_detail', id=article.id) }}">{{ article.title }}</a></td>
+                        <td>{{ article.author.username }}</td>
+                        <td>{{ article.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ article.status }}</td>
+                        <td>
+                            <a href="{{ url_for('article.edit', id=article.id) }}">编辑</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>暂无文章</p>
+            {% endif %}
+        </div>
+        
+        <div class="admin-section">
+            <h2>最近评论</h2>
+            {% if recent_comments %}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>内容</th>
+                        <th>作者</th>
+                        <th>日期</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comment in recent_comments %}
+                    <tr>
+                        <td>{{ comment.content[:50] }}{% if comment.content|length > 50 %}...{% endif %}</td>
+                        <td>{{ comment.author.username }}</td>
+                        <td>{{ comment.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>暂无评论</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
