@@ -386,4 +386,5 @@ def dislike_article(article_id):
     db.session.commit()
     delete_cache_pattern(f'article:{article_id}')
     
-    return {'status': 'success', 'likes': article.likes, 'dislikes': article.dislikes}
+    return {'status': 'success', 'likes': article.likes, 'dislikes': article.dislikes}#   ‡eàzd"}ŸRý€ 
+ 
