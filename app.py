@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, url_for, request, render_template
 from flask_wtf.csrf import CSRFProtect
 import os
 from datetime import datetime
@@ -11,7 +11,7 @@ from models import db, User, Category, Article, Tag
 from routes import main_bp, auth_bp, article_bp, other_bp, ai_bp
 from routes.socket import init_socketio
 from utils import generate_summary
-from utils.security import get_security_headers, generate_secure_secret_key
+from utils.security import get_security_headers, generate_secure_secret_key, log_security_event
 
 app = Flask(__name__)
 
